@@ -10,9 +10,10 @@ function App(){
     //per il lazy inzialization utilizziamo la funzione
     //siccome localStorage setitem prende una stringa ne dobbiamo fare il parse quando voglioamo l'oggetto
     let [notes,setNotes] = useState(
-        JSON.parse(localStorage.getItem("notes")) == null 
+        JSON.parse(localStorage.getItem("notes")).length === 0
         ?infoNotes
-        :()=>JSON.parse(localStorage.getItem("notes")))
+        :()=>JSON.parse(localStorage.getItem("notes"))
+    );
 
     let [currentNote,setCurrentNote] = useState(notes[0]) ;
     //ogni volta che notes cambia, quindi viene ricaricata la componente(perchè viene settato lo stato)
@@ -20,16 +21,22 @@ function App(){
     useEffect(()=>{
         localStorage.setItem("notes",JSON.stringify(notes))
     },[notes]) ;    
-
+    
+    
     function createNewNote(){
-        setNotes((prevNotes)=>
-            [...prevNotes,
-            {
-                id:prevNotes[prevNotes.length - 1].id + 1,
-                title : "nota",
-                body : "questa è una nota questa è una nota"
-            }]
-        );
+        setNotes((prevNotes)=>{
+            if(prevNotes.length === 0){
+                return infoNotes
+            }
+            else{
+                return [...prevNotes,
+                {
+                    id:prevNotes[prevNotes.length - 1].id + 1,
+                    title : "nota",
+                    body : "questa è una nota questa è una nota"
+                }
+            ]
+        }});
        
     }
  
@@ -37,8 +44,14 @@ function App(){
         //in modo che la nota che si sta modificando finisce al primo posto
         let newArray = [] ;
         for(let i = 0; i < notes.length ; i++){
-            if(notes[i] == currentNote)
-                newArray.unshift(notes[i]) ;
+            if(notes[i].id === currentNote.id)
+                newArray.unshift(
+                    {
+                        ...notes[i],
+                        title:testo.split("\n")[0],
+                        body:testo
+                    }
+                ) ;
             else newArray.push(notes[i]) ;
         }
         setNotes(newArray) ;
@@ -50,10 +63,21 @@ function App(){
                 }
                 :item
             }));*/
-        setCurrentNote((prev)=> {return {...prev, body:testo}}) ;
+        setCurrentNote((prev)=> {
+            return {
+                ...prev,
+                body:testo
+            }
+        }) ;
     }
    
-
+    function deleteCurrentNote(){
+        setNotes(prev => prev.filter((item)=>{
+                return item !== currentNote
+            })
+        );
+        setCurrentNote(notes[0]) ;
+    }
     return (
         <Split
             sizes={[30, 70]}
@@ -61,6 +85,7 @@ function App(){
             className="split"
             >
             <Sidebar 
+                handleDeleteCurrentNote = {deleteCurrentNote}
                 handleCreateNewNote = {createNewNote}
                 notes = {notes}
                 currentNote = {currentNote}
