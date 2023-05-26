@@ -1,5 +1,5 @@
-import React from "react";
-import "../css/Sidebar.css"
+import React from "react" ;
+import "../css/Sidebar.css" ;
 function Sidebar(props){
 
     let listNotes = props.notes.map((item, index)=>{

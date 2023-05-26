@@ -1,17 +1,18 @@
-import React, { useEffect, useState } from "react";
-import { Editor } from "./Editor";
+import React, { useEffect, useState } from "react" ;
+import { Editor } from "./Editor" ;
 import Split from 'react-split' ;
-import { Sidebar } from "./Siderbar";
-import { infoNotes } from "../dati";
-import "./../css/App.css"
+import { Sidebar } from "./Siderbar" ;
+import { infoNotes } from "../dati" ;
+import "./../css/App.css" ;
+
 function App(){
     let localStorage = window.localStorage ;
     //per il lazy inzialization utilizziamo la funzione
     //siccome localStorage setitem prende una stringa ne dobbiamo fare il parse quando voglioamo l'oggetto
     let [notes,setNotes] = useState(
-        ()=>JSON.parse(localStorage.getItem("notes")) == null 
+        JSON.parse(localStorage.getItem("notes")) == null 
         ?infoNotes
-        :JSON.parse(localStorage.getItem("notes")))
+        :()=>JSON.parse(localStorage.getItem("notes")))
 
     let [currentNote,setCurrentNote] = useState(notes[0]) ;
     //ogni volta che notes cambia, quindi viene ricaricata la componente(perchè viene settato lo stato)
@@ -33,11 +34,22 @@ function App(){
     }
  
     function updateNote(testo){
-        setNotes(prev => prev.map(item =>{
+        //in modo che la nota che si sta modificando finisce al primo posto
+        let newArray = [] ;
+        for(let i = 0; i < notes.length ; i++){
+            if(notes[i] == currentNote)
+                newArray.unshift(notes[i]) ;
+            else newArray.push(notes[i]) ;
+        }
+        setNotes(newArray) ;
+        /*setNotes(prev => prev.map(item =>{
                 return item.id === currentNote.id 
-                ?{...item,body:testo}
+                ?{...item,
+                    title:testo.split("\n")[0] ,
+                    body:testo
+                }
                 :item
-            }));
+            }));*/
         setCurrentNote((prev)=> {return {...prev, body:testo}}) ;
     }
    
@@ -62,9 +74,6 @@ function App(){
     
 
     );
-    //    <Sidebar/>
-    //<Editor/>
-        
 }
 
 export {App}
