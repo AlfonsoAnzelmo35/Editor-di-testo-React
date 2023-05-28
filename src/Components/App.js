@@ -20,7 +20,6 @@ function App(){
         //accade un cambiamento qualsiasi a quella collection! 
         const unsubscribe = onSnapshot(notesCollection,(snapshot)=>{
             //viene creata una promise, restituisce il valore dello snapshot
-            let promise = new Promise(function(myResolve,myReject){
                 newNotes = snapshot.docs.map((document)=>{
                         const obj = {
                             ...document.data(),
@@ -28,28 +27,20 @@ function App(){
                         }
                         return obj ;
                     })
-                //i dati sono caricati e quindo invoca la funzione del successo!
-                if(newNotes.length > 0)
-                    myResolve(newNotes,unsubscribe) ;
-                else myReject("non è più lungo di 0") ;
-                }) ;
-                //prima di uscire da onSnapshot aggiorna lo state !
-                promise.then(function(newNotes,unsubscribe){
-                    setCurrentNote(newNotes[0]);
                     setNotes(newNotes) ;
                     return unsubscribe ;
-                },
-                function(errore){
-                    console.log(errore)
-                }
-            );            
-        });//fine onSnapShot
-
-        
+                          
+        });//fine onSnapShot        
     },[]) ;//fine useEffect    
  
-   console.log(notes,currentNote) ;
-
+    useEffect(()=>{
+        setCurrentNote((prev)=>{
+            if(prev !== undefined)
+                return {...prev,id:prev.id}
+            else return notes[0];
+        });
+    },[notes]);
+  
 
     async function createNewNote(){
         const newNote = {
@@ -68,9 +59,6 @@ function App(){
         await setDoc(doc(notesDB, "notes", currentNote.id), newObj) ; 
         
         setCurrentNote((prev)=>{
-            console.log("currentNote.id",currentNote.id)
-            console.log("prev.id",prev.id)
-           
             const obj = {
                     id:currentNote.id,
                     title:newObj.title,
@@ -88,7 +76,7 @@ function App(){
     }
     return (
         <div>
-            {notes.length > 0 ?
+            {notes.length > 0 && currentNote != undefined?
             <Split
                 sizes={[30, 70]}
                 direction="horizontal"
