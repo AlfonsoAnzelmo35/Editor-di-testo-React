@@ -2,7 +2,7 @@ import React from "react" ;
 
 import "../css/Sidebar.css" ;
 function Sidebar(props){
-
+    
     let listNotes = props.notes.map((item, index)=>{
         return (
             <div key={index}>
@@ -13,7 +13,7 @@ function Sidebar(props){
                         onClick={()=>props.handleSetCurrentNote(item)} >
                         {item.title}
                         <img 
-                            onClick={props.handleDeleteCurrentNote}
+                            onClick={()=>props.handleDeleteCurrentNote(item.id)}
                             className = "cestino" 
                             src={require("./../images/cestino.png")}
                             alt="cestino"
@@ -25,7 +25,7 @@ function Sidebar(props){
                         onClick={()=>props.handleSetCurrentNote(item)} >
                         {item.title}
                         <img 
-                            onClick={props.handleDeleteCurrentNote}
+                            onClick={()=>props.handleDeleteCurrentNote(item.id)}
                             className = "cestino"
                             src={require("./../images/cestino.png")} 
                             alt="cestino"

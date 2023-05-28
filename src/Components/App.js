@@ -2,101 +2,114 @@ import React, { useEffect, useState } from "react" ;
 import { Editor } from "./Editor" ;
 import Split from 'react-split' ;
 import { Sidebar } from "./Siderbar" ;
-import { infoNotes } from "../dati" ;
 import "./../css/App.css" ;
 
-function App(){
-    let localStorage = window.localStorage ;
-    //per il lazy inzialization utilizziamo la funzione
-    //siccome localStorage setitem prende una stringa ne dobbiamo fare il parse quando voglioamo l'oggetto
-    let [notes,setNotes] = useState(
-        JSON.parse(localStorage.getItem("notes")).length === 0
-        ?infoNotes
-        :()=>JSON.parse(localStorage.getItem("notes"))
-    );
+import { addDoc, deleteDoc, onSnapshot, doc, setDoc} from "firebase/firestore";
+import { notesCollection, notesDB} from "../firebaseConfig";
 
-    let [currentNote,setCurrentNote] = useState(notes[0]) ;
-    //ogni volta che notes cambia, quindi viene ricaricata la componente(perchè viene settato lo stato)
-    //viene invocato useEffect solo alla fine di ogni render
+
+function App(){
+    let [notes,setNotes] = useState([])
+
+    let [currentNote,setCurrentNote] = useState(notes[0]) ;//->all'inizio è undefined
+
+    //alla fine del solo primo render, viene eseguito useEffect 
     useEffect(()=>{
-        localStorage.setItem("notes",JSON.stringify(notes))
-    },[notes]) ;    
-    
-    
-    function createNewNote(){
-        setNotes((prevNotes)=>{
-            if(prevNotes.length === 0){
-                return infoNotes
-            }
-            else{
-                return [...prevNotes,
-                {
-                    id:prevNotes[prevNotes.length - 1].id + 1,
-                    title : "nota",
-                    body : "questa è una nota questa è una nota"
+        let newNotes = [] ;
+        
+        //accade un cambiamento qualsiasi a quella collection! 
+        const unsubscribe = onSnapshot(notesCollection,(snapshot)=>{
+            //viene creata una promise, restituisce il valore dello snapshot
+            let promise = new Promise(function(myResolve,myReject){
+                newNotes = snapshot.docs.map((document)=>{
+                        const obj = {
+                            ...document.data(),
+                            id:document.id,
+                        }
+                        return obj ;
+                    })
+                //i dati sono caricati e quindo invoca la funzione del successo!
+                if(newNotes.length > 0)
+                    myResolve(newNotes,unsubscribe) ;
+                else myReject("non è più lungo di 0") ;
+                }) ;
+                //prima di uscire da onSnapshot aggiorna lo state !
+                promise.then(function(newNotes,unsubscribe){
+                    setCurrentNote(newNotes[0]);
+                    setNotes(newNotes) ;
+                    return unsubscribe ;
+                },
+                function(errore){
+                    console.log(errore)
                 }
-            ]
-        }});
-       
+            );            
+        });//fine onSnapShot
+
+        
+    },[]) ;//fine useEffect    
+ 
+   console.log(notes,currentNote) ;
+
+
+    async function createNewNote(){
+        const newNote = {
+            title:"nota",
+            body:"questa e' una nota"
+        }
+        const refDocNewNote = await addDoc(notesCollection,newNote) ;
+        setCurrentNote(refDocNewNote) ;
     }
  
-    function updateNote(testo){
-        //in modo che la nota che si sta modificando finisce al primo posto
-        let newArray = [] ;
-        for(let i = 0; i < notes.length ; i++){
-            if(notes[i].id === currentNote.id)
-                newArray.unshift(
-                    {
-                        ...notes[i],
-                        title:testo.split("\n")[0],
-                        body:testo
-                    }
-                ) ;
-            else newArray.push(notes[i]) ;
+    async function updateNote(testo){
+        const newObj = {
+            title:testo.split("\n")[0],
+            body:testo
         }
-        setNotes(newArray) ;
-        /*setNotes(prev => prev.map(item =>{
-                return item.id === currentNote.id 
-                ?{...item,
-                    title:testo.split("\n")[0] ,
-                    body:testo
+        await setDoc(doc(notesDB, "notes", currentNote.id), newObj) ; 
+        
+        setCurrentNote((prev)=>{
+            console.log("currentNote.id",currentNote.id)
+            console.log("prev.id",prev.id)
+           
+            const obj = {
+                    id:currentNote.id,
+                    title:newObj.title,
+                    body:newObj.body
                 }
-                :item
-            }));*/
-        setCurrentNote((prev)=> {
-            return {
-                ...prev,
-                body:testo
-            }
-        }) ;
+            return obj ;
+        });
+        
     }
-   
-    function deleteCurrentNote(){
-        setNotes(prev => prev.filter((item)=>{
-                return item !== currentNote
-            })
-        );
+    
+    async function deleteCurrentNote(id){
+        const docNoteRef = doc(notesDB,"notes",id) ;
+        await deleteDoc(docNoteRef) ;
         setCurrentNote(notes[0]) ;
     }
     return (
-        <Split
-            sizes={[30, 70]}
-            direction="horizontal"
-            className="split"
-            >
-            <Sidebar 
-                handleDeleteCurrentNote = {deleteCurrentNote}
-                handleCreateNewNote = {createNewNote}
-                notes = {notes}
-                currentNote = {currentNote}
-                handleSetCurrentNote = {setCurrentNote}
-                />
-            <Editor
-                handleUpdateNote = {updateNote}
-                currentNote = {currentNote}
-                />
-        </Split>
-    
+        <div>
+            {notes.length > 0 ?
+            <Split
+                sizes={[30, 70]}
+                direction="horizontal"
+                className="split"
+                >
+                <Sidebar 
+                    handleDeleteCurrentNote = {deleteCurrentNote}
+                    handleCreateNewNote = {createNewNote}
+                    notes = {notes}
+                    currentNote = {currentNote}
+                    handleSetCurrentNote = {setCurrentNote}
+                    />
+                <Editor
+                    handleUpdateNote = {updateNote}
+                    currentNote = {currentNote}
+                    />
+            </Split>
+    :
+    <button onClick={createNewNote}>crea nota</button>
+    }
+    </div>
 
     );
 }
