@@ -25,6 +25,7 @@ function Editor(props) {
         generateMarkdownPreview={(markdown) =>
           Promise.resolve(converter.makeHtml(markdown))
         }
+        heightUnits = {200}
       />
     </div>
   );
