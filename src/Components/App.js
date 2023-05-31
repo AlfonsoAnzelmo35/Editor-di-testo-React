@@ -10,9 +10,10 @@ import { notesCollection, notesDB} from "../firebaseConfig";
 
 function App(){
     let [notes,setNotes] = useState([])
-
     let [currentNote,setCurrentNote] = useState(notes[0]) ;//->all'inizio è undefined
 
+    let sortedNotes = notes.sort((a,b)=> b.updatedAt - a.updatedAt) ; //(l'array è sottosopra)
+    
     //alla fine del solo primo render, viene eseguito useEffect 
     useEffect(()=>{
         let newNotes = [] ;
@@ -45,7 +46,9 @@ function App(){
     async function createNewNote(){
         const newNote = {
             title:"nota",
-            body:"questa e' una nota"
+            body:"questa e' una nota",
+            createdAt:Date.now(),
+            updatedAt:Date.now()
         }
         const refDocNewNote = await addDoc(notesCollection,newNote) ;
         setCurrentNote(refDocNewNote) ;
@@ -54,15 +57,19 @@ function App(){
     async function updateNote(testo){
         const newObj = {
             title:testo.split("\n")[0],
-            body:testo
+            body:testo,
+            createdAt:currentNote.createdAt,
+            updatedAt:Date.now()
         }
         await setDoc(doc(notesDB, "notes", currentNote.id), newObj) ; 
         
         setCurrentNote((prev)=>{
             const obj = {
+                    ...prev,
                     id:currentNote.id,
                     title:newObj.title,
-                    body:newObj.body
+                    body:newObj.body,
+                    updatedAt:newObj.updatedAt
                 }
             return obj ;
         });
@@ -85,7 +92,7 @@ function App(){
                 <Sidebar 
                     handleDeleteCurrentNote = {deleteCurrentNote}
                     handleCreateNewNote = {createNewNote}
-                    notes = {notes}
+                    notes = {sortedNotes}
                     currentNote = {currentNote}
                     handleSetCurrentNote = {setCurrentNote}
                     />
